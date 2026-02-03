@@ -3,6 +3,33 @@
 This repository reproduces a nullpointer exception that occurs when subgraphs use MODEL_ORDER. I was trying to layout a graph 
 in another project that uses MODEL ORDER to determine the order that nodes appear in and encountered this issue. 
 
+```kotlin
+fun setElkContainerNodeProperties(elkNode: ElkNode) {
+    elkNode.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered")
+    // Setting either of CONSIDER_MODEL_ORDER_STRATEGY or CYCLE_BREAKING_STRATEGY triggers the exception codepath
+    elkNode.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_NODES)
+    elkNode.setProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY, CycleBreakingStrategy.MODEL_ORDER)
+    elkNode.setProperty(CoreOptions.HIERARCHY_HANDLING, HierarchyHandling.INCLUDE_CHILDREN)
+}
+
+fun main() {
+    LayoutMetaDataService.getInstance().registerLayoutMetaDataProviders(LayeredMetaDataProvider())
+
+    val elkGraphRoot: ElkNode = ElkGraphUtil.createGraph()
+    val nodeA = ElkGraphUtil.createNode(elkGraphRoot)
+    val nodeB = ElkGraphUtil.createNode(nodeA)
+
+    setElkContainerNodeProperties(elkGraphRoot)
+    setElkContainerNodeProperties(nodeA)
+
+    RecursiveGraphLayoutEngine().layout(elkGraphRoot, BasicProgressMonitor())
+}
+```
+This triggers the nullpointer exception. 
+
+The graph should look like this: 
+![graph.png](graph.png)
+
 ## Description 
 
 The combination of setting HIERARCHY_HANDLING to INCLUDE_CHILDREN and CYCLE_BREAKING_STRATEGY to MODEL_ORDER results in 
